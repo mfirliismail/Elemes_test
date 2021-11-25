@@ -15,7 +15,7 @@ module.exports = (fieldName) => {
         const storage = new CloudinaryStorage({
             cloudinary: cloudinary,
             params: {
-                folder: "laptops",
+                folder: "course",
                 resource_type: "raw",
                 public_id: (req, file) => "image - " + new Date().getTime() + path.extname(file.originalname),
             },
@@ -25,8 +25,19 @@ module.exports = (fieldName) => {
 
         return (req, res, next) => {
             upload(req, res, (err) => {
+                if (err) {
+                    return res.status(400).json({
+                        status: "failed",
+                        message: "please upload a thumbnail"
+                    })
+                }
                 return next();
             });
         };
-    } catch (error) {}
+    } catch (error) {
+        return res.status(400).json({
+            status: "failed",
+            message: "please upload a thumbnail"
+        })
+    }
 };

@@ -10,14 +10,20 @@ module.exports = {
     createCourse: async(req, res) => {
         const body = req.body
         const file = req.file
+
         try {
+            if (!req.file) {
+                return res.status(400).json({
+                    status: "failed",
+                    message: "please upload an image for thumbnail"
+                })
+            }
+
             const Schema = joi.object({
                 title: joi.string().required(),
                 description: joi.string().required(),
-                rating: joi.number().max(5).min(0).required(),
                 price: joi.number().required(),
                 category: joi.string().required(),
-                status: joi.string().required()
             })
             const { error } = Schema.validate({...body }, { abortEarly: false })
             if (error) {
@@ -89,6 +95,10 @@ module.exports = {
                 price: body.price,
                 category: body.category,
                 status: statusField
+            }, {
+                where: {
+                    id: id
+                }
             })
             if (!update[0]) {
                 return res.status(400).json({
@@ -111,6 +121,7 @@ module.exports = {
                     message: 'Business, Design, Marketing, Lifestyle, Development, Programming, Photography, Music, Others only for Category Course',
                 });
             }
+            console.log(error)
             return res.status(500).json({
                 status: 'failed',
                 message: 'internal server error',
@@ -173,10 +184,8 @@ module.exports = {
         try {
             const findCourseCategory = await Course.findAll({
                 where: {
-                    category: {
-                        [Op.iLike]: '%' + category + '%'
-                    }
-                }
+                    category: category
+                },
             })
             if (!findCourseCategory) {
                 return res.status(400).json({
@@ -191,10 +200,19 @@ module.exports = {
             })
 
         } catch (error) {
+            if (
+                error.name === 'SequelizeDatabaseError' &&
+                error.parent.routine === 'enum_in'
+            ) {
+                return res.status(400).json({
+                    status: 'failed',
+                    message: 'Business, Design, Marketing, Lifestyle, Development, Programming, Photography, Music, Others only for Category Course',
+                });
+            }
             return res.status(500).json({
-                status: "failed",
-                message: "internal server error"
-            })
+                status: 'failed',
+                message: 'internal server error',
+            });
         }
     },
     getPopularCourseCategory: async(req, res) => {
@@ -202,9 +220,7 @@ module.exports = {
         try {
             const findCourseCategory = await Course.findAll({
                 where: {
-                    category: {
-                        [Op.iLike]: '%' + category + '%'
-                    }
+                    category: category
                 },
                 order: [
                     ['rating', 'DESC']
@@ -326,11 +342,6 @@ module.exports = {
                 where: {
                     [Op.or]: [{
                             title: {
-                                [Op.iLike]: '%' + keyword + '%'
-                            }
-                        },
-                        {
-                            category: {
                                 [Op.iLike]: '%' + keyword + '%'
                             }
                         },

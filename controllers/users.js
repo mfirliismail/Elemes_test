@@ -10,9 +10,10 @@ module.exports = {
 
         try {
             const Schema = joi.object({
-                fullname: joi.string().min(5).required(),
+                fullName: joi.string().min(5).required(),
                 email: joi.string().email().required(),
-                password: joi.string().min(6).required()
+                password: joi.string().min(6).required(),
+                isAdmin: joi.boolean()
             })
 
             const { error } = Schema.validate({...body }, { abortEarly: false })
@@ -38,9 +39,10 @@ module.exports = {
 
             bcrypt.hash(body.password, 10, async(err, hash) => {
                 const createUser = await Users.create({
-                    fullname: body.fullname,
+                    fullName: body.fullName,
                     email: body.email,
-                    password: hash
+                    password: hash,
+                    isAdmin: body.isAdmin
                 })
                 if (!createUser) {
                     return res.status(400).json({
@@ -55,6 +57,7 @@ module.exports = {
             })
 
         } catch (error) {
+            console.log(error)
             return res.status(500).json({
                 status: "failed",
                 message: "internal server error"
