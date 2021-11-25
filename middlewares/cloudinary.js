@@ -9,6 +9,7 @@ cloudinary.config({
     api_secret: "oU-ZIRwlyCnLTV5Bukj9H-qpm7c",
 });
 
+
 module.exports = (fieldName) => {
     try {
         const storage = new CloudinaryStorage({
