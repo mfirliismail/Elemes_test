@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
         description: DataTypes.STRING,
         rating: DataTypes.INTEGER,
         price: DataTypes.INTEGER,
-        status: DataTypes.STRING
+        status: DataTypes.ENUM('Free', 'Paid')
     }, {
         sequelize,
         modelName: 'Course',
