@@ -293,7 +293,7 @@ module.exports = {
             })
         }
     },
-    getOneCourse: (req, res) => {
+    getOneCourse: async(req, res) => {
         const courseId = req.params.courseId
         try {
             const getOne = await Course.findOne({
@@ -324,13 +324,21 @@ module.exports = {
         try {
             const search = await Course.findAll({
                 where: {
-                    [Op.or]: [
-                        { title: {
-                                [Op.iLike]: '%' + keyword + '%' } },
-                        { category: {
-                                [Op.iLike]: '%' + keyword + '%' } },
-                        { description: {
-                                [Op.iLike]: '%' + keyword + '%' } }
+                    [Op.or]: [{
+                            title: {
+                                [Op.iLike]: '%' + keyword + '%'
+                            }
+                        },
+                        {
+                            category: {
+                                [Op.iLike]: '%' + keyword + '%'
+                            }
+                        },
+                        {
+                            description: {
+                                [Op.iLike]: '%' + keyword + '%'
+                            }
+                        }
                     ]
                 }
             })
