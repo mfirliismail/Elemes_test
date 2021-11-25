@@ -1,15 +1,22 @@
-const { Course } = require('../models')
+const { Course, Users } = require('../models')
 const joi = require('joi')
+const { async } = require('q')
+const { Op } = require('sequelize')
 
 module.exports = {
+    // ======================
+    // admin
+    // ======================
     createCourse: async(req, res) => {
         const body = req.body
+        const file = req.file
         try {
             const Schema = joi.object({
                 title: joi.string().required(),
                 description: joi.string().required(),
                 rating: joi.number().max(5).min(0).required(),
                 price: joi.number().required(),
+                category: joi.string().required(),
                 status: joi.string().required()
             })
             const { error } = Schema.validate({...body }, { abortEarly: false })
@@ -29,8 +36,10 @@ module.exports = {
             const create = await Course.create({
                 title: body.title,
                 description: body.description,
+                thumbnail: file.path,
                 rating: 0,
                 price: body.price,
+                category: body.category,
                 status: statusField
             })
             if (!create) {
@@ -46,10 +55,19 @@ module.exports = {
             })
 
         } catch (error) {
+            if (
+                error.name === 'SequelizeDatabaseError' &&
+                error.parent.routine === 'enum_in'
+            ) {
+                return res.status(400).json({
+                    status: 'failed',
+                    message: 'Business, Design, Marketing, Lifestyle, Development, Programming, Photography, Music, Others only for Category Course',
+                });
+            }
             return res.status(500).json({
-                status: "failed",
-                message: "internal server error"
-            })
+                status: 'failed',
+                message: 'internal server error',
+            });
         }
     },
     updateCourse: async(req, res) => {
@@ -67,7 +85,9 @@ module.exports = {
             const update = await Course.update({
                 title: body.title,
                 description: body.description,
+                thumbnail: req.file ? req.file.path : findCourse.dataValues.thumbnail,
                 price: body.price,
+                category: body.category,
                 status: statusField
             })
             if (!update[0]) {
@@ -82,10 +102,19 @@ module.exports = {
             })
 
         } catch (error) {
+            if (
+                error.name === 'SequelizeDatabaseError' &&
+                error.parent.routine === 'enum_in'
+            ) {
+                return res.status(400).json({
+                    status: 'failed',
+                    message: 'Business, Design, Marketing, Lifestyle, Development, Programming, Photography, Music, Others only for Category Course',
+                });
+            }
             return res.status(500).json({
-                status: "failed",
-                message: "internal server error"
-            })
+                status: 'failed',
+                message: 'internal server error',
+            });
         }
     },
     deleteCourse: async(req, res) => {
@@ -114,5 +143,215 @@ module.exports = {
             })
         }
     },
+    getStatistic: async(req, res) => {
+        try {
+            const totalUsers = await Users.findAll()
+            const totalCourse = await Course.findAll()
+            const totalFreeCourse = await Course.findAll({ where: { status: "Free" } })
 
+            return res.status(200).json({
+                status: "success",
+                message: "success retrieved data",
+                totalUsers: totalUsers,
+                countUsers: totalUsers.length,
+                totalCourses: totalCourse,
+                countCourses: totalCourse.length,
+                totalFreeCourses: totalFreeCourse
+            })
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    },
+    // ======================
+    // users
+    // ======================
+    getCategoryCourse: async(req, res) => {
+        const category = req.params.category
+        try {
+            const findCourseCategory = await Course.findAll({
+                where: {
+                    category: {
+                        [Op.iLike]: '%' + category + '%'
+                    }
+                }
+            })
+            if (!findCourseCategory) {
+                return res.status(400).json({
+                    status: "failed",
+                    message: "cannot find category"
+                })
+            }
+            return res.status(200).json({
+                status: "success",
+                message: "success retrieved data",
+                data: findCourseCategory
+            })
+
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    },
+    getPopularCourseCategory: async(req, res) => {
+        const category = req.params.category
+        try {
+            const findCourseCategory = await Course.findAll({
+                where: {
+                    category: {
+                        [Op.iLike]: '%' + category + '%'
+                    }
+                },
+                order: [
+                    ['rating', 'DESC']
+                ]
+            })
+            if (!findCourseCategory) {
+                return res.status(400).json({
+                    status: "failed",
+                    message: "cannot find category"
+                })
+            }
+
+            return res.status(200).json({
+                status: "success",
+                message: "success retrieved data",
+                data: findCourseCategory
+            })
+
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    },
+    getAllCourse: async(req, res) => {
+        const field = req.query.field
+        const sort = req.query.sort
+        try {
+            if (field == "price" && sort == "highest") {
+                const findCourse = await Course.findAll({
+                    order: [
+                        ['price', 'DESC']
+                    ]
+                })
+                return res.status(200).json({
+                    status: "success",
+                    message: "success retrieved data",
+                    data: findCourse
+                })
+            } else if (field == "price" && sort == "lowest") {
+                const findCourse = await Course.findAll({
+                    order: [
+                        ['price', 'ASC']
+                    ]
+                })
+                return res.status(200).json({
+                    status: "success",
+                    message: "success retrieved data",
+                    data: findCourse
+                })
+            } else if (field == "status" && sort == "free") {
+                const findCourse = await Course.findAll({
+                    where: {
+                        status: "Free"
+                    }
+                })
+                return res.status(200).json({
+                    status: "success",
+                    message: "success retrieved data",
+                    data: findCourse
+                })
+            } else if (field == "status" && sort == "paid") {
+                const findCourse = await Course.findAll({
+                    where: {
+                        status: "Paid"
+                    }
+                })
+                return res.status(200).json({
+                    status: "success",
+                    message: "success retrieved data",
+                    data: findCourse
+                })
+            } else {
+                const findCourse = await Course.findAll()
+                return res.status(200).json({
+                    status: "success",
+                    message: "success retrieved data",
+                    data: findCourse
+                })
+            }
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    },
+    getOneCourse: (req, res) => {
+        const courseId = req.params.courseId
+        try {
+            const getOne = await Course.findOne({
+                where: {
+                    id: courseId
+                }
+            })
+            if (!getOne) {
+                return res.status(400).json({
+                    status: "failed",
+                    message: "cannot find course"
+                })
+            }
+            return res.status(200).json({
+                status: "success",
+                message: "success retrieved data",
+                data: getOne
+            })
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    },
+    searchCourse: async(req, res) => {
+        const keyword = req.params.keyword
+        try {
+            const search = await Course.findAll({
+                where: {
+                    [Op.or]: [
+                        { title: {
+                                [Op.iLike]: '%' + keyword + '%' } },
+                        { category: {
+                                [Op.iLike]: '%' + keyword + '%' } },
+                        { description: {
+                                [Op.iLike]: '%' + keyword + '%' } }
+                    ]
+                }
+            })
+            if (search.length == 0) {
+                return res.status(400).json({
+                    status: "failed",
+                    message: "search not found"
+                })
+            }
+
+            return res.status(200).json({
+                status: "success",
+                message: "success retrieved data",
+                data: search
+            })
+
+        } catch (error) {
+            return res.status(500).json({
+                status: "failed",
+                message: "internal server error"
+            })
+        }
+    }
 }

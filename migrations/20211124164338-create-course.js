@@ -14,11 +14,27 @@ module.exports = {
             description: {
                 type: Sequelize.STRING
             },
+            thumbnail: {
+                type: Sequelize.STRING
+            },
             rating: {
                 type: Sequelize.INTEGER
             },
             price: {
                 type: Sequelize.INTEGER
+            },
+            category: {
+                type: Sequelize.ENUM(
+                    'Business',
+                    'Design',
+                    'Marketing',
+                    'Lifestyle',
+                    'Development',
+                    'Programming',
+                    'Photography',
+                    'Music',
+                    'Others'
+                )
             },
             status: {
                 type: Sequelize.ENUM('Free', 'Paid')

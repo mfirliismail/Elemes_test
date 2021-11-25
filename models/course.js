@@ -17,8 +17,20 @@ module.exports = (sequelize, DataTypes) => {
     Course.init({
         title: DataTypes.STRING,
         description: DataTypes.STRING,
+        thumbnail: DataTypes.STRING,
         rating: DataTypes.INTEGER,
         price: DataTypes.INTEGER,
+        category: DataTypes.ENUM(
+            'Business',
+            'Design',
+            'Marketing',
+            'Lifestyle',
+            'Development',
+            'Programming',
+            'Photography',
+            'Music',
+            'Others'
+        ),
         status: DataTypes.ENUM('Free', 'Paid')
     }, {
         sequelize,
